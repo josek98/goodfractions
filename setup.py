@@ -8,7 +8,7 @@ with open(
 
 setup(
     name="goodfractions",
-    version="0.0.1",
+    version="0.0.1a0",
     description="Improvement of the fractions module from the standard library",
     long_description=long_description,
     long_description_content_type="text/markdown",
