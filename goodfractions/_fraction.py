@@ -1,17 +1,21 @@
 from __future__ import annotations
 from math import gcd
+from typing import Literal
 
 __all__ = ["Fraction"]
 
 
-def _check_zero(value: RationalLike) -> None:
-    _raise: bool = False
+def _check_zero(value: RationalLike) -> bool:
     if isinstance(value, (int, float)) and value == 0:
-        _raise = True
-    elif isinstance(value, Fraction) and value.numerator == 0:
-        _raise = True
+        return True
+    if isinstance(value, Fraction) and value.numerator == 0:
+        return True
 
-    if _raise:
+    return False
+
+
+def _check_denominator(value: RationalLike) -> None:
+    if _check_zero(value):
         raise ZeroDivisionError("Denominator cannot be zero.")
 
 
@@ -36,20 +40,26 @@ def _process_rational_like(value: RationalLike) -> tuple[int, int]:
 
 def _reduce_fraction(numerator: int, denominator: int) -> tuple[int, int]:
     common_divisor = gcd(numerator, denominator)
-    num = numerator // common_divisor
-    den = denominator // common_divisor
-    if (num < 0) and (den < 0):
-        num = -num
-        den = -den
+    sign_num = numerator / abs(numerator)
+    sign_den = denominator / abs(denominator)
+    sign = int(sign_num * sign_den)
+    num = sign * abs(numerator) // common_divisor
+    den = abs(denominator) // common_divisor
     return num, den
 
 
 class Fraction:
     def __init__(self, numerator: RationalLike, denominator: RationalLike = 1) -> None:
-        _check_zero(denominator)
-        num_a, num_b = _process_rational_like(numerator)
-        den_a, den_b = _process_rational_like(denominator)
-        self._numerator, self._denominator = _reduce_fraction(num_a * den_b, num_b * den_a)
+        self._numerator: int
+        self._denominator: int
+        _check_denominator(denominator)
+        if _check_zero(numerator):
+            self._numerator = 0
+            self._denominator = 1
+        else:
+            num_a, num_b = _process_rational_like(numerator)
+            den_a, den_b = _process_rational_like(denominator)
+            self._numerator, self._denominator = _reduce_fraction(num_a * den_b, num_b * den_a)
 
     @property
     def numerator(self) -> int:
@@ -63,10 +73,20 @@ class Fraction:
     def inverse(self) -> Fraction:
         return Fraction(self.denominator, self.numerator)
 
+    @property
+    def sign(self) -> Literal[0, 1, -1]:
+        if self.numerator == 0:
+            return 0
+        
+        if self.numerator > 0:
+            return 1
+        
+        return -1
+
     def __add__(self, other: RationalLike) -> Fraction:
-        other_as_fraction = Fraction(other)
-        new_numerator = self.numerator * other_as_fraction.denominator + other_as_fraction.numerator * self.denominator
-        new_denominator = self.denominator * other_as_fraction.denominator
+        other_frac = Fraction(other)
+        new_numerator = self.numerator * other_frac.denominator + other_frac.numerator * self.denominator
+        new_denominator = self.denominator * other_frac.denominator
         return Fraction(new_numerator, new_denominator)
 
     def __radd__(self, other: RationalLike) -> Fraction:
@@ -82,20 +102,27 @@ class Fraction:
         return self - other
 
     def __mul__(self, other: RationalLike) -> Fraction:
-        other_as_fraction = Fraction(other)
-        new_numerator = self.numerator * other_as_fraction.numerator
-        new_denominator = self.denominator * other_as_fraction.denominator
+        other_frac = Fraction(other)
+        new_numerator = self.numerator * other_frac.numerator
+        new_denominator = self.denominator * other_frac.denominator
         return Fraction(new_numerator, new_denominator)
 
     def __rmul__(self, other: RationalLike) -> Fraction:
         return self * other
 
     def __truediv__(self, other: RationalLike) -> Fraction:
-        other_as_fraction = Fraction(other)
-        return self * other_as_fraction.inverse
+        other_frac = Fraction(other)
+        return self * other_frac.inverse
 
     def __rtruediv__(self, other: RationalLike) -> Fraction:
         return self.inverse * other
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, RationalLike):
+            return False
+
+        other_frac = Fraction(other)
+        return (self.numerator == other_frac.numerator) and (self.denominator == other_frac.denominator)
 
     def __repr__(self) -> str:
         return f"{self.numerator}/{self.denominator}"
