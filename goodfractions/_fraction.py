@@ -99,7 +99,7 @@ class Fraction:
         return self + Fraction(-other)
 
     def __rsub__(self, other: RationalLike) -> Fraction:
-        return self - other
+        return other + (-self)
 
     def __mul__(self, other: RationalLike) -> Fraction:
         other_frac = Fraction(other)
